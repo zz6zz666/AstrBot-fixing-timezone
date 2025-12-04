@@ -8,6 +8,7 @@ class:
     LogBroker: 日志代理类, 用于缓存和分发日志消息
     LogQueueHandler: 日志处理器, 用于将日志消息发送到 LogBroker
     LogManager: 日志管理器, 用于创建和配置日志记录器
+    TimezoneFormatter: 支持时区的日志格式化器
 
 function:
     is_plugin_path: 检查文件路径是否来自插件目录
@@ -26,6 +27,8 @@ import os
 import sys
 from asyncio import Queue
 from collections import deque
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import colorlog
 
@@ -78,6 +81,50 @@ def get_short_level_name(level_name):
         "CRITICAL": "CRIT",
     }
     return level_map.get(level_name, level_name[:4].upper())
+
+
+class TimezoneFormatter(logging.Formatter):
+    """支持时区转换的日志格式化器
+
+    将 UTC 时间转换为指定时区的本地时间进行显示
+    """
+
+    def __init__(self, fmt=None, datefmt=None, style='%', tz_str='UTC'):
+        """初始化时区格式化器
+
+        Args:
+            fmt: 日志格式字符串
+            datefmt: 日期时间格式字符串
+            style: 格式字符串风格
+            tz_str: 时区字符串 (IANA 时区名称, 如 'Asia/Shanghai')
+        """
+        super().__init__(fmt, datefmt, style)
+        try:
+            self.timezone = ZoneInfo(tz_str)
+        except Exception:
+            # 如果时区无效，默认使用 UTC
+            self.timezone = timezone.utc
+
+    def formatTime(self, record, datefmt=None):
+        """将时间戳转换为指定时区的时间字符串
+
+        Args:
+            record: 日志记录对象
+            datefmt: 日期时间格式字符串
+
+        Returns:
+            str: 格式化后的时间字符串
+        """
+        # 从时间戳创建 UTC datetime
+        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
+        # 转换到目标时区
+        dt = dt.astimezone(self.timezone)
+        # 格式化时间
+        if datefmt:
+            s = dt.strftime(datefmt)
+        else:
+            s = dt.strftime("%Y-%m-%d %H:%M:%S")
+        return s
 
 
 class LogBroker:
@@ -161,11 +208,12 @@ class LogManager:
     """
 
     @classmethod
-    def GetLogger(cls, log_name: str = "default"):
+    def GetLogger(cls, log_name: str = "default", tz_str: str = "Asia/Shanghai"):
         """获取指定名称的日志记录器logger
 
         Args:
             log_name (str): 日志记录器的名称, 默认为 "default"
+            tz_str (str): 时区字符串 (IANA 时区名称), 默认为 "Asia/Shanghai"
 
         Returns:
             logging.Logger: 返回配置好的日志记录器
@@ -184,11 +232,14 @@ class LogManager:
         )  # 将日志级别设置为DEBUG(最低级别, 显示所有日志), *如果插件没有设置级别, 默认为DEBUG
 
         # 创建彩色日志格式化器, 输出日志格式为: [时间] [插件标签] [日志级别] [文件名:行号]: 日志消息
+        # 使用 TimezoneFormatter 支持时区转换
         console_formatter = colorlog.ColoredFormatter(
             fmt="%(log_color)s [%(asctime)s] %(plugin_tag)s [%(short_levelname)-4s] [%(filename)s:%(lineno)d]: %(message)s %(reset)s",
             datefmt="%H:%M:%S",
             log_colors=log_color_config,
         )
+        # 将 colorlog.ColoredFormatter 的 formatTime 方法替换为支持时区的版本
+        console_formatter.formatTime = TimezoneFormatter(tz_str=tz_str).formatTime
 
         class PluginFilter(logging.Filter):
             """插件过滤器类, 用于标记日志来源是插件还是核心组件"""
