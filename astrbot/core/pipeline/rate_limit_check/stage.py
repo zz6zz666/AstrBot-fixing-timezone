@@ -1,7 +1,7 @@
 import asyncio
 from collections import defaultdict, deque
 from collections.abc import AsyncGenerator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from astrbot.core import logger
 from astrbot.core.config.astrbot_config import RateLimitStrategy
@@ -55,7 +55,7 @@ class RateLimitStage(Stage):
 
         """
         session_id = event.session_id
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         async with self.locks[session_id]:  # 确保同一会话不会并发修改队列
             # 检查并处理限流，可能需要多次检查直到满足条件
@@ -75,7 +75,7 @@ class RateLimitStage(Stage):
                             f"会话 {session_id} 被限流。根据限流策略，此会话处理将被暂停 {stall_duration:.2f} 秒。",
                         )
                         await asyncio.sleep(stall_duration)
-                        now = datetime.now()
+                        now = datetime.now(timezone.utc)
                     case RateLimitStrategy.DISCARD.value:
                         logger.info(
                             f"会话 {session_id} 被限流。根据限流策略，此请求已被丢弃，直到限额于 {stall_duration:.2f} 秒后重置。",

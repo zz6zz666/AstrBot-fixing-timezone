@@ -3,7 +3,7 @@ import json
 import os
 import ssl
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 
 import aiohttp
 import certifi
@@ -229,7 +229,7 @@ class PluginRoute(Route):
             os.makedirs(os.path.dirname(cache_file), exist_ok=True)
 
             cache_data = {
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": data,
                 "md5": md5 or "",
             }

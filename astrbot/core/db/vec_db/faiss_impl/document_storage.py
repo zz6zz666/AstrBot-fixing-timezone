@@ -1,7 +1,7 @@
 import json
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, Text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
@@ -167,8 +167,8 @@ class DocumentStorage:
                 doc_id=doc_id,
                 text=text,
                 metadata_=json.dumps(metadata),
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
             session.add(document)
             await session.flush()  # Flush to get the ID
@@ -202,8 +202,8 @@ class DocumentStorage:
                     doc_id=doc_id,
                     text=text,
                     metadata_=json.dumps(metadata),
-                    created_at=datetime.now(),
-                    updated_at=datetime.now(),
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc),
                 )
                 documents.append(document)
                 session.add(document)
@@ -266,7 +266,7 @@ class DocumentStorage:
 
             if document:
                 document.text = new_text
-                document.updated_at = datetime.now()
+                document.updated_at = datetime.now(timezone.utc)
                 session.add(document)
 
     async def delete_documents(self, metadata_filters: dict):

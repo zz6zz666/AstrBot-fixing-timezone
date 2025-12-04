@@ -62,7 +62,7 @@ class SQLiteDatabase(BaseDatabase):
             session: AsyncSession
             async with session.begin():
                 if timestamp is None:
-                    timestamp = datetime.now().replace(
+                    timestamp = datetime.now(timezone.utc).replace(
                         minute=0,
                         second=0,
                         microsecond=0,
@@ -99,7 +99,7 @@ class SQLiteDatabase(BaseDatabase):
         """Get platform statistics within the specified offset in seconds and group by platform_id."""
         async with self.get_db() as session:
             session: AsyncSession
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             start_time = now - timedelta(seconds=offset_sec)
             result = await session.execute(
                 text("""
@@ -417,7 +417,7 @@ class SQLiteDatabase(BaseDatabase):
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
-                now = datetime.now()
+                now = datetime.now(timezone.utc)
                 cutoff_time = now - timedelta(seconds=offset_sec)
                 await session.execute(
                     delete(PlatformMessageHistory).where(
@@ -679,7 +679,7 @@ class SQLiteDatabase(BaseDatabase):
         async def _inner():
             async with self.get_db() as session:
                 session: AsyncSession
-                now = datetime.now()
+                now = datetime.now(timezone.utc)
                 start_time = now - timedelta(seconds=offset_sec)
                 result = await session.execute(
                     select(PlatformStat).where(PlatformStat.timestamp >= start_time),
@@ -735,7 +735,7 @@ class SQLiteDatabase(BaseDatabase):
         async def _inner():
             async with self.get_db() as session:
                 session: AsyncSession
-                now = datetime.now()
+                now = datetime.now(timezone.utc)
                 start_time = now - timedelta(seconds=offset_sec)
                 result = await session.execute(
                     select(PlatformStat.platform_id, func.sum(PlatformStat.count))

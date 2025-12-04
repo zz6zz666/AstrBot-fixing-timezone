@@ -3,7 +3,7 @@ import uuid
 from asyncio import Queue
 from collections.abc import Awaitable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -57,7 +57,7 @@ class Platform(abc.ABC):
         """设置平台运行状态"""
         self._status = value
         if value == PlatformStatus.RUNNING and self._started_at is None:
-            self._started_at = datetime.now()
+            self._started_at = datetime.now(timezone.utc)
 
     @property
     def errors(self) -> list[PlatformError]:

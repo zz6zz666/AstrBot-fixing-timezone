@@ -6,7 +6,7 @@ LastEditTime: 2025-02-25 14:06:30
 import asyncio
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 from funasr_onnx import SenseVoiceSmall
 from funasr_onnx.utils.postprocess_utils import rich_transcription_postprocess
@@ -48,7 +48,7 @@ class ProviderSenseVoiceSTTSelfHost(STTProvider):
         logger.info("SenseVoice 模型加载完成。")
 
     async def get_timestamped_path(self) -> str:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         return os.path.join("data", "temp", f"{timestamp}")
 
     async def _is_silk_file(self, file_path):
