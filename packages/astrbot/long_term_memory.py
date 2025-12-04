@@ -1,6 +1,7 @@
 import datetime
 import random
 import uuid
+import zoneinfo
 from collections import defaultdict
 
 from astrbot import logger
@@ -22,6 +23,14 @@ class LongTermMemory:
         self.context = context
         self.session_chats = defaultdict(list)
         """记录群成员的群聊记录"""
+
+        # 获取时区配置
+        timezone_str = acm.cfg.get("timezone", "Asia/Shanghai")
+        try:
+            self.timezone = zoneinfo.ZoneInfo(timezone_str)
+        except Exception as e:
+            logger.warning(f"时区设置错误: {e}, 使用 UTC 时区")
+            self.timezone = datetime.timezone.utc
 
     def cfg(self, event: AstrMessageEvent):
         cfg = self.context.get_config(umo=event.unified_msg_origin)
@@ -114,7 +123,8 @@ class LongTermMemory:
     async def handle_message(self, event: AstrMessageEvent):
         """仅支持群聊"""
         if event.get_message_type() == MessageType.GROUP_MESSAGE:
-            datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
+            # 使用配置的时区显示时间
+            datetime_str = datetime.datetime.now(self.timezone).strftime("%H:%M:%S")
 
             parts = [f"[{event.message_obj.sender.nickname}/{datetime_str}]: "]
 
@@ -176,7 +186,8 @@ class LongTermMemory:
             return
 
         if llm_resp.completion_text:
-            final_message = f"[You/{datetime.datetime.now().strftime('%H:%M:%S')}]: {llm_resp.completion_text}"
+            # 使用配置的时区显示时间
+            final_message = f"[You/{datetime.datetime.now(self.timezone).strftime('%H:%M:%S')}]: {llm_resp.completion_text}"
             logger.debug(
                 f"Recorded AI response: {event.unified_msg_origin} | {final_message}"
             )

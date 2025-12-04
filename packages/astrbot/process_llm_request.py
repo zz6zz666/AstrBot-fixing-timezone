@@ -147,15 +147,18 @@ class ProcessLLMRequest:
         if cfg.get("datetime_system_prompt"):
             current_time = None
             if self.timezone:
-                # 启用时区
+                # 启用时区：从 UTC 转换到配置的时区
                 try:
-                    now = datetime.datetime.now(zoneinfo.ZoneInfo(self.timezone))
+                    now = datetime.datetime.now(datetime.timezone.utc).astimezone(
+                        zoneinfo.ZoneInfo(self.timezone)
+                    )
                     current_time = now.strftime("%Y-%m-%d %H:%M (%Z)")
                 except Exception as e:
-                    logger.error(f"时区设置错误: {e}, 使用本地时区")
+                    logger.error(f"时区设置错误: {e}, 使用 UTC 时区")
             if not current_time:
+                # 后退逻辑：使用 UTC 时间
                 current_time = (
-                    datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M (%Z)")
+                    datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M (UTC)")
                 )
             req.system_prompt += f"\nCurrent datetime: {current_time}\n"
 
